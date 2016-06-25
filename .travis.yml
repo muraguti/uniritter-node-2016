@@ -2,3 +2,6 @@ services: mongodb
 language: node_js
 node_js:
   - "5.11"
+addons:
+    code_climate:
+        repo_token: 2c240407f99ade03b96b1aa4fe7829deffd698341b984e69e819ee668766c22c
