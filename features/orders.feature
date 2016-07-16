@@ -16,8 +16,6 @@ Scenario Outline: verify order status
 Examples:
   |     s     |
   | new       |
-  | cancelled |
-  | invoiced  |
 
 Scenario Outline: invalid order
   Given an invalid order that <condition>
@@ -36,5 +34,8 @@ Scenario: order cancellation
   Then I receive a success message
   And my order status turns to 'cancelled'
 
-
-      
+Scenario: order payment
+    Given a valid order
+    When I submit it to the API
+    And wait a few seconds
+    Then it moves to a paid status

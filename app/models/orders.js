@@ -3,6 +3,7 @@
 const 
     Types = require('joi'),
     uuid = require('uuid'),
+    eh = require('../utils/eventhandling'),
     _ = require('lodash');
 
 module.exports = function (server) {
@@ -25,6 +26,10 @@ module.exports = function (server) {
             }
         }
 
+    
+    server.route(harvesterPlugin.routes['get'](schema));
+    server.route(harvesterPlugin.routes['getById'](schema));
+    
     var post = _.clone(harvesterPlugin.routes['post'](schema));
     //hack: this is chockfull of state. No biggie, since it's a PoC. But please don't do this in prod code.
     post.config.pre = [
@@ -35,7 +40,6 @@ module.exports = function (server) {
                 request.payload.data._id = uuid.v4();
                 attributes.updated_on = attributes.created_on = new Date();
                 attributes.status = 'new';
-                // to-do: this should be validating the products and getting the price from there...
                 _.each(attributes.items, e => {
                     e.price = Math.floor((Math.random() * 10000) + 1) / 100;
                 });
@@ -48,41 +52,30 @@ module.exports = function (server) {
         {
             assign: 'broadcast',
             method: (request, reply) => {
-                return reply(1);
                 const payload = request.pre.enrichment;
                 const data = {
                     type: 'order_events',
                     id: uuid.v4(),
                     attributes: {
-                        kind: 'create',
-                        key:  payload._id,
+                        kind: 'order.created',
+                        key:  payload.data._id,
                         eventDate: new Date(), 
                         payload: request.payload
                     }
                 };
-                return eh.createEvent(server, 'order_events', data)
-                .then(() => reply(data));
+                eh.publish(data);
+                return reply(data);
             }
         } 
         ];
     server.route(post);
     
-    server.route({
-        method: 'POST',
-        path:'/orders/{id}/cancel', 
-        handler: function (request, reply) {
-            var id = encodeURIComponent(request.params.id);
-            const data = {
-                type: 'order_events', 
-                attributes: {
-                    kind: 'cancel',
-                    key: id,
-                    eventDate: new Date(), 
-                    payload: request.payload
-                }};
-            return eh.createEvent(server, 'order_events', data);
-        }
+    eh.subscribe('order.paid', paymentEvent => {
+        const id = paymentEvent.attributes.key;
+        const model = harvesterPlugin.adapter.models['orders'];
+        console.log('updating status for order', id);
+        
+        model.findByIdAndUpdate(id, { $set: { 'attributes.status': 'paid' }})
+        .then(data => console.log(data));
     });
-    server.route(harvesterPlugin.routes['get'](schema));
-    server.route(harvesterPlugin.routes['getById'](schema));    
 }

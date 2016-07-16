@@ -2,21 +2,20 @@
 
 const
     rx = require('rx'),
-    EventEmitter = require('event').EventEmitter,
+    EventEmitter = require('events').EventEmitter,
+    emitter = new EventEmitter(),
     rxNode = require('rx-node');
     
-module.exports = function() {
-    const emitter = new EventEmitter();
+module.exports.publish = function(event) {
+    //const source = rx.Observable.return(event);
+    //const emitter = rxNode.toEventEmitter(source, event.eventType);
+    //emitter.publish();
+    console.log('publishing event', event, 'at', event.attributes.kind);
+    emitter.emit(event.attributes.kind, event);
+};
     
-    this.publish = function(event) {
-        //const source = rx.Observable.return(event);
-        //const emitter = rxNode.toEventEmitter(source, event.eventType);
-        //emitter.publish();
-        emitter.emit(event.eventType, event);
-    },
-    
-    this.subscribe = function(eventType) {
-        const src = rx.Observable.fromEvent(emitter, eventType);
-        const subs = src.subscribe(x => console.log('data:', x));
-    }
-}
+module.exports.subscribe = function(eventType, callback) {
+    console.log('subscribing to', eventType);
+    const src = rx.Observable.fromEvent(emitter, eventType);
+    const subs = src.subscribe(callback);
+};
