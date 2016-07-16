@@ -3,13 +3,9 @@
 const
     rx = require('rx'),
     EventEmitter = require('events').EventEmitter,
-    emitter = new EventEmitter(),
-    rxNode = require('rx-node');
+    emitter = new EventEmitter();
     
 module.exports.publish = function(event) {
-    //const source = rx.Observable.return(event);
-    //const emitter = rxNode.toEventEmitter(source, event.eventType);
-    //emitter.publish();
     console.log('publishing event', event, 'at', event.attributes.kind);
     emitter.emit(event.attributes.kind, event);
 };
